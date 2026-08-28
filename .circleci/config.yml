@@ -26,8 +26,8 @@ jobs:
           command: node bin/validate-pull-request.mjs
 
   # Publishing needs write:packages, which only RELEASE_PLEASE_TOKEN carries. Consumers
-  # read with TC_NPM_TOKEN instead — that one cannot write anywhere, which is what makes
-  # it safe to hand to jobs that run branch code.
+  # never see it: they install from git, tokenless. This job is tags-only and never runs
+  # on a branch, so branch code cannot reach the token.
   publish:
     executor: node
     steps:

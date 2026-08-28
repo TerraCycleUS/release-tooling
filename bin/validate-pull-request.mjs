@@ -15,8 +15,9 @@ const failures = []
 
 const branch = process.env.CIRCLE_BRANCH
 if (branch) {
-  failures.push(...branchErrors(branch).map(error => `${branch}: ${error}`))
-  if (!failures.length) console.log(`Branch name is valid: ${branch}`)
+  const errors = branchErrors(branch)
+  if (!errors.length) console.log(`Branch name is valid: ${branch}`)
+  failures.push(...errors.map(error => `${branch}: ${error}`))
 } else {
   console.log('No branch context detected; branch validation skipped.')
 }

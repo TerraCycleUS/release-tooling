@@ -1,8 +1,8 @@
 # release-tooling
 
 Release Please wiring and pull request rules shared by the TerraCycle repositories.
-`loop-client` and `loop-coms` each carried their own copy of these twelve files; this
-is that copy, once.
+loop-client, loop-coms, loop-dms and loop-tds each carried their own copy of these
+files; this is that copy, once.
 
 ## What it provides
 
@@ -23,7 +23,7 @@ no registry and no credentials:
 {
   "private": true,
   "dependencies": {
-    "@terracycleus/release-tooling": "github:TerraCycleUS/release-tooling#v1.0.0"
+    "@terracycleus/release-tooling": "github:TerraCycleUS/release-tooling#v1.1.0"
   }
 }
 ```
@@ -38,7 +38,7 @@ Then call the commands from CI:
 Because installing needs no token, the jobs that install this — which run branch code —
 carry no credential at all. Only the jobs that talk to GitHub afterwards get one.
 
-Pin the tag, not a range: `#v1.0.0` resolves to that tag and nothing else, so a consumer
+Pin the tag, not a range: `#v1.1.0` resolves to that tag and nothing else, so a consumer
 moves deliberately.
 
 Nothing here names an organisation, a Jira instance or a repository: those come from
@@ -57,7 +57,7 @@ config.
 | `RELEASE_PLEASE_TOKEN` | everything that talks to GitHub | required |
 | `RELEASE_REPOSITORY` | the same | `$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME` |
 | `GITHUB_TOKEN` | anything that talks to GitHub | fallback when `RELEASE_PLEASE_TOKEN` is unset |
-| `JIRA_PROJECT` | key matching | none — required, e.g. `ITG` |
+| `JIRA_PROJECT` | key matching and linking | none — required, e.g. `ITG` |
 | `JIRA_BROWSE_URL` | link targets | none — required, e.g. `https://example.atlassian.net/browse` |
 
 ## Releasing this package
@@ -70,9 +70,11 @@ git tag v1.0.1 && git push origin v1.0.1
 
 CI refuses if the tag and the package version disagree.
 
-Consumers pin the tag, so a release does not reach them on its own: bump the `#v1.0.0`
-in their `.release/package.json`, run `npm install --prefix .release` to refresh the
-lockfile, and open that as its own pull request.
+Consumers pin the tag, so a release does not reach them on its own: bump the tag
+in their `.release/package.json`, then **delete `.release/package-lock.json` and
+`.release/node_modules` before running `npm install --prefix .release`** — npm does not
+re-resolve a git tag while a lockfile entry for it exists, so a plain install leaves the
+old commit pinned and CI keeps installing the old code. Open that as its own pull request.
 
 The tag also publishes the package to GitHub Packages, which is a second way to consume
 it that nothing uses today. That job takes `RELEASE_PLEASE_TOKEN` from the

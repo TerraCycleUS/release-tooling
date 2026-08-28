@@ -2,12 +2,9 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { escapeRegExp } from './escape-regexp.mjs'
+import { JIRA_PROJECT } from './jira.mjs'
 import CANONICAL_SECTIONS from './changelog-sections.json' with { type: 'json' }
 
-// Defaulting this silently is worse than failing: the rules then demand JIRA-123 branch
-// names and reject every correct one, with a message naming a project that does not exist.
-const JIRA_PROJECT = process.env.JIRA_PROJECT
-assert.ok(JIRA_PROJECT, 'Set JIRA_PROJECT to the Jira project key, e.g. ITG.')
 
 const KEY = `${JIRA_PROJECT}-\\d+`
 const SCOPE = '(?:\\([a-z0-9][a-z0-9._/-]*\\))?!?'
@@ -15,7 +12,7 @@ const KEYS = `(?:\\[${KEY}\\])+`
 const ANY_KEY = new RegExp(KEY, 'i')
 
 const BRANCH = new RegExp(`^${JIRA_PROJECT}-\\d+-[a-z0-9]+(?:[-_][a-z0-9]+)*$`)
-const BRANCH_EXEMPT = [/^master$/, /^staging$/, /^production$/, /^v\d+\.\d+\.\d+$/,
+const BRANCH_EXEMPT = [/^master$/, /^main$/, /^staging$/, /^production$/, /^v\d+\.\d+\.\d+$/,
   /^release\/v\d+\.\d+\.\d+$/, /^release-please--/, /^dependabot\//, /^revert-\d+-/]
 
 // The tooling runs from the root of the repository it serves, so its config lives there.
