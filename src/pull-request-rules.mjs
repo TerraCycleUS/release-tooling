@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { escapeRegExp } from './escape-regexp.mjs'
+import CANONICAL_SECTIONS from './changelog-sections.json' with { type: 'json' }
 
 const JIRA_PROJECT = process.env.JIRA_PROJECT || 'JIRA'
 
@@ -17,23 +19,23 @@ const BRANCH_EXEMPT = [/^master$/, /^staging$/, /^production$/, /^v\d+\.\d+\.\d+
 const CONFIG_PATH = resolve(process.cwd(), 'release-please-config.json')
 const PLACEHOLDERS = { scope: '(?:\\([^)]+\\))?', component: '(?: \\S+)?', version: '\\d+\\.\\d+\\.\\d+' }
 
+// A repository that runs release-please states the types in its own config, and
+// verify-release-rules holds that config to the canonical list. One that does not — the
+// tooling repository itself — still gets the standard rather than no rules at all.
 function allowedTypes(config) {
-  if (process.env.ALLOWED_TYPES) return process.env.ALLOWED_TYPES.split(',')
-
-  const types = (config['changelog-sections'] ?? []).map(section => section.type)
+  const sections = config['changelog-sections'] ?? CANONICAL_SECTIONS
+  const types = sections.map(section => section.type)
   assert.ok(types.length, `No changelog-sections in ${CONFIG_PATH}; the allowed commit types are read from there.`)
   return types
 }
 
 function exemptPattern(config) {
-  if (process.env.TITLE_EXEMPT_PATTERN) return new RegExp(process.env.TITLE_EXEMPT_PATTERN)
-
   const pattern = config['pull-request-title-pattern']
   if (!pattern) return /$^/
 
   const source = pattern
     .split(/\$\{(\w+)\}/)
-    .map((part, index) => (index % 2 ? PLACEHOLDERS[part] : part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+    .map((part, index) => (index % 2 ? PLACEHOLDERS[part] : escapeRegExp(part)))
     .join('')
   return new RegExp(`^${source}$`)
 }
