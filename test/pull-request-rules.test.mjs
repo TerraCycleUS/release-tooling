@@ -45,10 +45,17 @@ for (const branch of ['maintenance/release-please-circleci', 'itg-123-add-retrie
   assert.notEqual(branchErrors(branch).length, 0, `should reject branch: ${branch}`)
 }
 
+// The fixture's type list is deliberately not the canonical one: `spike` exists only
+// there, and `perf` only in the canonical list. Together they prove the rules read the
+// served repository's config.
+accept('spike(api): [ITG-123] try the other encoding')
+reject('perf(api): [ITG-123] cache the response')
+
 // A repository with no release-please config still gets the canonical type list, which is
 // what lets this package check its own pull requests.
 const canonicalRules = rulesFrom({})
 assert.deepEqual(titleErrors('maintenance(deps): [ITG-123] update dependencies', canonicalRules), [])
-assert.notEqual(titleErrors('nonsense(deps): [ITG-123] update dependencies', canonicalRules).length, 0)
+assert.deepEqual(titleErrors('perf(api): [ITG-123] cache the response', canonicalRules), [])
+assert.notEqual(titleErrors('spike(api): [ITG-123] try it', canonicalRules).length, 0)
 
 console.log('Pull request rules verified.')

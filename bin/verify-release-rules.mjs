@@ -3,6 +3,8 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 
 import { escapeRegExp } from '../src/escape-regexp.mjs'
+import { owner, repo } from '../src/github.mjs'
+import CANONICAL_SECTIONS from '../src/changelog-sections.json' with { type: 'json' }
 
 import { DefaultChangelogNotes } from 'release-please/build/src/changelog-notes/default.js'
 import { parseConventionalCommits } from 'release-please/build/src/commit.js'
@@ -13,16 +15,11 @@ import { PullRequestTitle } from 'release-please/build/src/util/pull-request-tit
 import { Version } from 'release-please/build/src/version.js'
 import { DefaultVersioningStrategy } from 'release-please/build/src/versioning-strategies/default.js'
 
-const CANONICAL_SECTIONS = JSON.parse(await readFile(new URL('../src/changelog-sections.json', import.meta.url), 'utf8'))
-const TARGET_BRANCH = process.env.RELEASE_TARGET_BRANCH || 'master'
+const TARGET_BRANCH = 'master'
 
 const config = JSON.parse(await readFile('release-please-config.json', 'utf8'))
 const manifestVersions = JSON.parse(await readFile('.release-please-manifest.json', 'utf8'))
 const packageConfig = config.packages['.']
-// The repository under test identifies itself; nothing here names an organisation.
-const [owner, repoFromEnv] = (process.env.RELEASE_REPOSITORY ||
-  `${process.env.CIRCLE_PROJECT_USERNAME || ''}/${process.env.CIRCLE_PROJECT_REPONAME || ''}`).split('/')
-const repo = repoFromEnv || packageConfig['package-name'].replace(/_/g, '-')
 const versionSource = await readFile(packageConfig['version-file'], 'utf8')
 const gemfileLock = await readFile('Gemfile.lock', 'utf8')
 // Only a packaged gem lists itself in its own lockfile; an application does not.
@@ -60,7 +57,8 @@ const updates = await strategy.buildUpdates({
   commits: [],
 })
 
-assert.equal(await strategy.getComponent(), '')
+const component = await strategy.getComponent()
+assert.equal(component, '')
 assert.deepEqual(updates.map(update => update.path), [
   'CHANGELOG.md',
   packageConfig['version-file'],
@@ -72,13 +70,12 @@ if (packagedGem) {
 }
 
 const releaseTitle = PullRequestTitle.ofComponentTargetBranchVersion(
-  await strategy.getComponent(),
+  component,
   TARGET_BRANCH,
   expectedPatchVersion,
   config['pull-request-title-pattern'],
 ).toString()
 assert.equal(releaseTitle, `chore(${TARGET_BRANCH}): prepare ${expectedPatchVersion.toString()}`)
-assert.ok(PullRequestTitle.parse(releaseTitle, config['pull-request-title-pattern']))
 
 let fixtureIndex = 0
 

@@ -1,4 +1,5 @@
-const JIRA_PROJECT = process.env.JIRA_PROJECT || 'JIRA'
+import { JIRA_PROJECT } from './jira.mjs'
+
 const JIRA_BROWSE_URL = process.env.JIRA_BROWSE_URL
 
 if (!JIRA_BROWSE_URL) {

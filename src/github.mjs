@@ -4,6 +4,9 @@ const token = process.env.RELEASE_PLEASE_TOKEN || process.env.GITHUB_TOKEN
 const repository = process.env.RELEASE_REPOSITORY ||
   [process.env.CIRCLE_PROJECT_USERNAME, process.env.CIRCLE_PROJECT_REPONAME].filter(Boolean).join('/')
 
+// The repository under test identifies itself; nothing here names an organisation.
+export const [owner, repo] = repository.split('/')
+
 // An unresolved repository would spell `undefined/undefined` into every URL, and the 404
 // that comes back reads to `optionalJson` as "nothing published yet".
 export function request(path, options = {}) {
@@ -21,11 +24,10 @@ export function request(path, options = {}) {
   })
 }
 
-
-// GitHub answers 404 when a token is missing or cannot see the repository, and every
-// caller would read that as "nothing published yet" and skip its work silently.
+// A missing token reads as 404, which `optionalJson` would take for "nothing published
+// yet" — so the callers that must not skip their work check for one up front.
 export function requireToken() {
-  if (!token) throw new Error('RELEASE_PLEASE_TOKEN is not set; GitHub then answers 404 and the run skips its work.')
+  if (!token) throw new Error('Set RELEASE_PLEASE_TOKEN (or GITHUB_TOKEN); without one GitHub answers 404 and the run skips its work.')
 }
 
 export async function optionalJson(path, options = {}) {
@@ -40,10 +42,9 @@ export async function optionalJson(path, options = {}) {
 
 export async function json(path, options = {}) {
   const body = await optionalJson(path, options)
-  // A private repository answers 404 rather than 403, so a missing or unscoped token
-  // looks exactly like a missing resource.
-  if (body === null) throw new Error(`GitHub returned 404 for ${path}. A private repository answers ` +
-    '404 rather than 403, so this may instead be a token that cannot read it.')
+  // A private repository answers 404 rather than 403, so this is as likely a token that
+  // cannot read the repository as a resource that is not there.
+  if (body === null) throw new Error(`GitHub returned 404 for ${path}; the token may not be able to read this repository.`)
   return body
 }
 
