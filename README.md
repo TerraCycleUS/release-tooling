@@ -16,36 +16,30 @@ is that copy, once.
 
 ## Using it
 
-The package is published to GitHub Packages. A consuming repository needs an `.npmrc`
-next to its `package.json`:
-
-```
-@terracycleus:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${TC_NPM_TOKEN}
-```
-
-and the dependency:
+This repository is public, so a consuming repository takes it straight from git and needs
+no registry and no credentials:
 
 ```json
 {
   "private": true,
   "dependencies": {
-    "@terracycleus/release-tooling": "^1.0.0"
+    "@terracycleus/release-tooling": "github:TerraCycleUS/release-tooling#v1.0.0"
   }
 }
 ```
 
-Then call the commands from CI, with the `tc_packages token` context attached to any
-job that installs:
+Then call the commands from CI:
 
 ```yaml
 - run: npm ci --prefix .release
 - run: npx --prefix .release verify-release-rules
 ```
 
-`TC_NPM_TOKEN` reads packages; it cannot write to repositories. That is deliberate —
-the jobs that install this run branch code, so the credential they carry should not be
-able to touch a repository.
+Because installing needs no token, the jobs that install this — which run branch code —
+carry no credential at all. Only the jobs that talk to GitHub afterwards get one.
+
+Pin the tag, not a range: `#v1.0.0` resolves to that tag and nothing else, so a consumer
+moves deliberately.
 
 Nothing here names an organisation, a Jira instance or a repository: those come from
 the environment and from the config of the repository being served. Set `JIRA_PROJECT`
@@ -74,12 +68,16 @@ Bump `version` in `package.json`, commit, then push a matching tag:
 git tag v1.0.1 && git push origin v1.0.1
 ```
 
-CI publishes on that tag and refuses if the tag and the package version disagree.
-Consumers take the new version through their own `npm update`.
+CI refuses if the tag and the package version disagree.
 
-Publishing uses `RELEASE_PLEASE_TOKEN` from the `tc-loop-release-please` context, which
-is the token that carries `write:packages`. Consumers never see it — they read with
-`TC_NPM_TOKEN`, which cannot write anywhere.
+Consumers pin the tag, so a release does not reach them on its own: bump the `#v1.0.0`
+in their `.release/package.json`, run `npm install --prefix .release` to refresh the
+lockfile, and open that as its own pull request.
+
+The tag also publishes the package to GitHub Packages, which is a second way to consume
+it that nothing uses today. That job takes `RELEASE_PLEASE_TOKEN` from the
+`tc-loop-release-please` context for its `write:packages` scope. It runs on tags only and
+never on a branch, so branch code cannot reach that token.
 
 ## Tests
 
