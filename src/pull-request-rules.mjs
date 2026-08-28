@@ -4,7 +4,10 @@ import { resolve } from 'node:path'
 import { escapeRegExp } from './escape-regexp.mjs'
 import CANONICAL_SECTIONS from './changelog-sections.json' with { type: 'json' }
 
-const JIRA_PROJECT = process.env.JIRA_PROJECT || 'JIRA'
+// Defaulting this silently is worse than failing: the rules then demand JIRA-123 branch
+// names and reject every correct one, with a message naming a project that does not exist.
+const JIRA_PROJECT = process.env.JIRA_PROJECT
+assert.ok(JIRA_PROJECT, 'Set JIRA_PROJECT to the Jira project key, e.g. ITG.')
 
 const KEY = `${JIRA_PROJECT}-\\d+`
 const SCOPE = '(?:\\([a-z0-9][a-z0-9._/-]*\\))?!?'

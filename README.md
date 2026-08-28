@@ -57,7 +57,7 @@ config.
 | `RELEASE_PLEASE_TOKEN` | everything that talks to GitHub | required |
 | `RELEASE_REPOSITORY` | the same | `$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME` |
 | `GITHUB_TOKEN` | anything that talks to GitHub | fallback when `RELEASE_PLEASE_TOKEN` is unset |
-| `JIRA_PROJECT` | key matching | `JIRA` |
+| `JIRA_PROJECT` | key matching | none — required, e.g. `ITG` |
 | `JIRA_BROWSE_URL` | link targets | none — required, e.g. `https://example.atlassian.net/browse` |
 
 ## Releasing this package
