@@ -1,0 +1,31 @@
+{
+  "name": "@terracycleus/release-tooling",
+  "version": "1.0.0",
+  "description": "Release Please wiring and pull request rules shared by the TerraCycle repositories",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TerraCycleUS/release-tooling.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "type": "module",
+  "bin": {
+    "create-release-branch": "bin/create-release-branch.mjs",
+    "linkify-changelog": "bin/linkify-changelog.mjs",
+    "linkify-release-notes": "bin/linkify-release-notes.mjs",
+    "validate-pull-request": "bin/validate-pull-request.mjs",
+    "verify-release-rules": "bin/verify-release-rules.mjs"
+  },
+  "scripts": {
+    "postinstall": "node ./bin/suppress-release-comment.mjs",
+    "test": "JIRA_PROJECT=ITG JIRA_BROWSE_URL=https://example.atlassian.net/browse node test/jira-links.test.mjs && JIRA_PROJECT=ITG JIRA_BROWSE_URL=https://example.atlassian.net/browse node test/github.test.mjs && JIRA_PROJECT=ITG JIRA_BROWSE_URL=https://example.atlassian.net/browse node test/pull-request-rules.test.mjs"
+  },
+  "files": [
+    "bin",
+    "src"
+  ],
+  "dependencies": {
+    "release-please": "17.11.1"
+  }
+}
