@@ -56,4 +56,9 @@ assert.equal(
   1,
 )
 
+// A key quoted as code is part of the sample, not a reference to rewrite.
+assert.equal(withReferences('* run `git branch ITG-1-x` first'), '* run `git branch ITG-1-x` first')
+assert.equal(withReferences('```\nITG-1\n```\n'), '```\nITG-1\n```\n')
+assert.equal(withReferences('* ITG-1 then ```ITG-2``` then ITG-3'), '* [ITG-1] then ```ITG-2``` then [ITG-3]')
+
 console.log('Jira link rules verified.')

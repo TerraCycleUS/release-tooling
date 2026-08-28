@@ -58,4 +58,24 @@ assert.deepEqual(titleErrors('maintenance(deps): [ITG-123] update dependencies',
 assert.deepEqual(titleErrors('perf(api): [ITG-123] cache the response', canonicalRules), [])
 assert.notEqual(titleErrors('spike(api): [ITG-123] try it', canonicalRules).length, 0)
 
+// An unknown type is one mistake, not two: the key after it is placed correctly, so only
+// the type is reported. A key that really is outside the prefix still gets its own error.
+assert.equal(titleErrors('change(api): [ITG-123] update the response', rules).length, 1)
+assert.equal(titleErrors('fix(api): [ITG-123] correct the ITG-999 response', rules).length, 1)
+// A key in the scope is both an unusable type and a misplaced key, so it reports both.
+assert.equal(titleErrors('feat(ITG-123): [ITG-1] add retries', rules).length, 2)
+
+// Release Please writes the version its own way: a `v` prefix and a prerelease suffix are
+// both titles it opens, and rejecting one would block the release pull request.
+for (const version of ['1.0.1', 'v1.0.1', '1.0.1-rc.1', '1.0.1-master.6', '1.0.1+build.2']) {
+  accept(`chore(master): prepare ${version}`)
+}
+
+// An unsupported placeholder used to vanish into the empty string, leaving a pattern that
+// matched no title at all; it has to fail where it is written instead.
+assert.throws(() => rulesFrom({ 'pull-request-title-pattern': 'chore${nope}: prepare ${version}' }),
+  /Unsupported \$\{nope\}/)
+assert.ok(rulesFrom({ 'pull-request-title-pattern': 'chore(${branch}): prepare ${version}' })
+  .exempt.test('chore(master): prepare 1.0.1'))
+
 console.log('Pull request rules verified.')

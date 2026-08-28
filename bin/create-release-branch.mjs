@@ -25,10 +25,16 @@ const created = await request('/git/refs', {
   method: 'POST',
   body: JSON.stringify({ ref: `refs/heads/${branch}`, sha }),
 })
-// 422 is how GitHub reports a ref that is already there — a rerun, or a concurrent job.
+// 422 is how GitHub reports a ref that is already there — a rerun, or a concurrent job —
+// but it is also what it returns for a sha it cannot resolve or a name it rejects, so the
+// reason decides between "nothing to do" and a release that never got its branch.
 if (created.status === 422) {
-  console.log(`${branch}: branch already exists.`)
-  process.exit(0)
+  const { message } = await created.json().catch(() => ({}))
+  if (message === 'Reference already exists') {
+    console.log(`${branch}: branch already exists.`)
+    process.exit(0)
+  }
+  throw new Error(`GitHub rejected branch ${branch} at ${sha}: ${message ?? 'no reason given'}`)
 }
 if (!created.ok) {
   throw new Error(`GitHub returned ${created.status} while creating branch ${branch}`)

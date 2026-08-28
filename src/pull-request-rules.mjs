@@ -17,7 +17,16 @@ const BRANCH_EXEMPT = [/^master$/, /^main$/, /^staging$/, /^production$/, /^v\d+
 
 // The tooling runs from the root of the repository it serves, so its config lives there.
 const CONFIG_PATH = resolve(process.cwd(), 'release-please-config.json')
-const PLACEHOLDERS = { scope: '(?:\\([^)]+\\))?', component: '(?: \\S+)?', version: '\\d+\\.\\d+\\.\\d+' }
+// Every placeholder Release Please substitutes in a title, matching what its own
+// generateMatchPattern accepts: an optional `v`, and the prerelease and build suffixes a
+// version may carry. A pattern that reaches here with anything narrower stops matching
+// the titles Release Please actually opens, and the release pull request is then rejected.
+const PLACEHOLDERS = {
+  scope: '(?:\\([^)]+\\))?',
+  component: '(?: \\S+)?',
+  version: 'v?\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?',
+  branch: '(?:[\\w-./]+)?',
+}
 
 // A repository that runs release-please states the types in its own config, and
 // verify-release-rules holds that config to the canonical list. One that does not — the
@@ -35,7 +44,13 @@ function exemptPattern(config) {
 
   const source = pattern
     .split(/\$\{(\w+)\}/)
-    .map((part, index) => (index % 2 ? PLACEHOLDERS[part] : escapeRegExp(part)))
+    .map((part, index) => {
+      if (index % 2 === 0) return escapeRegExp(part)
+      // join() would render an unknown placeholder as the empty string, leaving a pattern
+      // that silently matches no release title at all.
+      assert.ok(PLACEHOLDERS[part], `Unsupported \${${part}} in pull-request-title-pattern: ${pattern}`)
+      return PLACEHOLDERS[part]
+    })
     .join('')
   return new RegExp(`^${source}$`)
 }
@@ -46,7 +61,10 @@ export function rulesFrom(config) {
   return {
     title: new RegExp(`^(?:${types})${SCOPE}: ${KEYS} (?![A-Z][a-z])\\S.+$`),
     revert: new RegExp(`^revert${SCOPE}: ${KEYS} "[^"]+"$`),
-    prefix: new RegExp(`^(?:${types})${SCOPE}: (?:${KEYS} )?`),
+    // Only used to strip the prefix before looking for a stray key, so it takes any type:
+    // an unknown one is already reported, and holding the keys against a prefix that
+    // cannot match would report a correctly placed key as misplaced too.
+    prefix: new RegExp(`^[a-z]+${SCOPE}: (?:${KEYS} )?`),
     exempt: exemptPattern(config),
   }
 }
