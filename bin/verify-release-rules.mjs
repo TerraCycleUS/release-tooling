@@ -41,6 +41,11 @@ const changelog = new DefaultChangelogNotes()
 assert.deepEqual(config['changelog-sections'], CANONICAL_SECTIONS,
   'changelog-sections must match src/changelog-sections.json in @terracycleus/release-tooling.')
 
+// This is the one command that reads owner and repo without ever calling request(), so
+// the guard there never fires for it: unset, the strategy would be built for `/undefined`.
+assert.ok(owner && repo,
+  'Set RELEASE_REPOSITORY as owner/repo; CIRCLE_PROJECT_USERNAME and CIRCLE_PROJECT_REPONAME are not both set.')
+
 const strategy = await buildStrategy({
   github: { repository: { owner, repo } },
   releaseType: packageConfig['release-type'],

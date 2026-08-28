@@ -8,9 +8,15 @@ if (!JIRA_BROWSE_URL) {
 const REFERENCE = new RegExp(`\\[(${JIRA_PROJECT}-\\d+)\\]`, 'g')
 const LOOSE_KEY = new RegExp(`(?<![\\[/\\w])(${JIRA_PROJECT}-\\d+)(?![\\w-])`, 'g')
 const TRAILING_DEFINITION = new RegExp(`\\n\\[${JIRA_PROJECT}-\\d+\\]: \\S+$`)
+// A changelog entry can quote code, and a key inside it is part of the sample rather than
+// a reference to link. split() keeps the delimiters, so the odd parts are the code.
+const CODE = /(```[\s\S]*?```|`[^`\n]*`)/g
 
 export function withReferences(body) {
-  return body.replace(LOOSE_KEY, '[$1]')
+  return body
+    .split(CODE)
+    .map((part, index) => (index % 2 ? part : part.replace(LOOSE_KEY, '[$1]')))
+    .join('')
 }
 
 export function withDefinitions(body) {

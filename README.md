@@ -23,7 +23,7 @@ no registry and no credentials:
 {
   "private": true,
   "dependencies": {
-    "@terracycleus/release-tooling": "github:TerraCycleUS/release-tooling#v1.1.0"
+    "@terracycleus/release-tooling": "github:TerraCycleUS/release-tooling#v1.2.0"
   }
 }
 ```
@@ -38,7 +38,7 @@ Then call the commands from CI:
 Because installing needs no token, the jobs that install this — which run branch code —
 carry no credential at all. Only the jobs that talk to GitHub afterwards get one.
 
-Pin the tag, not a range: `#v1.1.0` resolves to that tag and nothing else, so a consumer
+Pin the tag, not a range: `#v1.2.0` resolves to that tag and nothing else, so a consumer
 moves deliberately.
 
 Nothing here names an organisation, a Jira instance or a repository: those come from
