@@ -16,12 +16,6 @@ const tag = release.tag_name
 const branch = `release/${tag}`
 const { sha } = await json(`/commits/${tag}`)
 
-const existing = await request(`/git/ref/heads/${branch}`)
-if (existing.ok) {
-  console.log(`${branch}: branch already exists.`)
-  process.exit(0)
-}
-
 if (dryRun) {
   console.log(`${branch}: would branch from ${sha.slice(0, 8)}.`)
   process.exit(0)
@@ -31,8 +25,9 @@ const created = await request('/git/refs', {
   method: 'POST',
   body: JSON.stringify({ ref: `refs/heads/${branch}`, sha }),
 })
+// 422 is how GitHub reports a ref that is already there — a rerun, or a concurrent job.
 if (created.status === 422) {
-  console.log(`${branch}: another run created the branch first.`)
+  console.log(`${branch}: branch already exists.`)
   process.exit(0)
 }
 if (!created.ok) {

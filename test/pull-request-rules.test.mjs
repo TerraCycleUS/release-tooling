@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { branchErrors, loadRules, titleErrors } from '../src/pull-request-rules.mjs'
+import { branchErrors, loadRules, rulesFrom, titleErrors } from '../src/pull-request-rules.mjs'
 
 // The rules read the config of the repository they serve; the fixture stands in for one.
 const rules = await loadRules(join(dirname(fileURLToPath(import.meta.url)), 'fixture-release-please-config.json'))
@@ -44,5 +44,11 @@ for (const branch of ['maintenance/release-please-circleci', 'itg-123-add-retrie
   'ITG-123', 'ITG-123-Add-Retries', 'add-retries', 'feature/ITG-123-add-retries', 'release/nope']) {
   assert.notEqual(branchErrors(branch).length, 0, `should reject branch: ${branch}`)
 }
+
+// A repository with no release-please config still gets the canonical type list, which is
+// what lets this package check its own pull requests.
+const canonicalRules = rulesFrom({})
+assert.deepEqual(titleErrors('maintenance(deps): [ITG-123] update dependencies', canonicalRules), [])
+assert.notEqual(titleErrors('nonsense(deps): [ITG-123] update dependencies', canonicalRules).length, 0)
 
 console.log('Pull request rules verified.')

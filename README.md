@@ -8,7 +8,7 @@ is that copy, once.
 
 | Command | Does |
 | --- | --- |
-| `verify-release-rules` | asserts the release config: every commit type releases and has a changelog section, and the version file matches the manifest |
+| `verify-release-rules` | asserts the release config: its `changelog-sections` match the canonical list here, every type releases, and the version file matches the manifest |
 | `validate-pull-request` | rejects a branch name or pull request title that does not carry its Jira key |
 | `create-release-branch` | cuts `release/<tag>` from a published release, so Heroku can deploy it |
 | `linkify-release-notes` | turns Jira keys in the published release notes into links |
@@ -32,7 +32,7 @@ Then call the commands from CI:
 
 ```yaml
 - run: npm ci --prefix .release
-- run: npx --prefix .release verify-release-rules
+- run: .release/node_modules/.bin/verify-release-rules
 ```
 
 Because installing needs no token, the jobs that install this — which run branch code —
@@ -56,8 +56,8 @@ config.
 | --- | --- | --- |
 | `RELEASE_PLEASE_TOKEN` | everything that talks to GitHub | required |
 | `RELEASE_REPOSITORY` | the same | `$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME` |
-| `GITHUB_TOKEN` | `validate-pull-request` | optional; required on a private repository, which answers 404 rather than 403 |
-| `JIRA_PROJECT` | key matching | `JIRA` |
+| `GITHUB_TOKEN` | anything that talks to GitHub | fallback when `RELEASE_PLEASE_TOKEN` is unset |
+| `JIRA_PROJECT` | key matching | none — required, e.g. `ITG` |
 | `JIRA_BROWSE_URL` | link targets | none — required, e.g. `https://example.atlassian.net/browse` |
 
 ## Releasing this package
