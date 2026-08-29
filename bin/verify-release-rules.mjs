@@ -5,12 +5,11 @@ import { readFile } from 'node:fs/promises'
 import { escapeRegExp } from '../src/escape-regexp.mjs'
 import { owner, repo } from '../src/github.mjs'
 import CANONICAL_SECTIONS from '../src/changelog-sections.json' with { type: 'json' }
+import { RELEASE_TYPES } from '../src/release-types.mjs'
 
 import { DefaultChangelogNotes } from 'release-please/build/src/changelog-notes/default.js'
 import { parseConventionalCommits } from 'release-please/build/src/commit.js'
 import { buildStrategy } from 'release-please/build/src/factory.js'
-import { GemfileLock } from 'release-please/build/src/updaters/ruby/gemfile-lock.js'
-import { VersionRB } from 'release-please/build/src/updaters/ruby/version-rb.js'
 import { PullRequestTitle } from 'release-please/build/src/util/pull-request-title.js'
 import { Version } from 'release-please/build/src/version.js'
 import { DefaultVersioningStrategy } from 'release-please/build/src/versioning-strategies/default.js'
@@ -20,10 +19,16 @@ const TARGET_BRANCH = 'master'
 const config = JSON.parse(await readFile('release-please-config.json', 'utf8'))
 const manifestVersions = JSON.parse(await readFile('.release-please-manifest.json', 'utf8'))
 const packageConfig = config.packages['.']
-const versionSource = await readFile(packageConfig['version-file'], 'utf8')
-const gemfileLock = await readFile('Gemfile.lock', 'utf8')
-// Only a packaged gem lists itself in its own lockfile; an application does not.
-const packagedGem = new RegExp(`^\\s+${packageConfig['package-name']} \\(`, 'm').test(gemfileLock)
+const releaseType = packageConfig['release-type']
+const language = RELEASE_TYPES[releaseType]
+assert.ok(language, `Unsupported release-type ${releaseType}; add it to src/release-types.mjs.`)
+
+const versionFile = language.versionFile(packageConfig)
+const versionSource = await readFile(versionFile, 'utf8')
+const lockfile = language.lockfile ? await readFile(language.lockfile, 'utf8') : null
+// Only a packaged library lists itself in its own lockfile; an application does not.
+const packaged = lockfile !== null &&
+  new RegExp(`^\\s+${packageConfig['package-name']} \\(`, 'm').test(lockfile)
 const currentVersion = Version.parse(manifestVersions['.'])
 const expectedPatchVersion = new Version(
   currentVersion.major,
@@ -48,7 +53,7 @@ assert.ok(owner && repo,
 
 const strategy = await buildStrategy({
   github: { repository: { owner, repo } },
-  releaseType: packageConfig['release-type'],
+  releaseType,
   targetBranch: TARGET_BRANCH,
   packageName: packageConfig['package-name'],
   includeComponentInTag: config['include-component-in-tag'],
@@ -64,14 +69,14 @@ const updates = await strategy.buildUpdates({
 
 const component = await strategy.getComponent()
 assert.equal(component, '')
-assert.deepEqual(updates.map(update => update.path), [
-  'CHANGELOG.md',
-  packageConfig['version-file'],
-  'Gemfile.lock',
-])
-assert.match(versionSource, new RegExp(`VERSION = ['\"]${currentVersion.toString()}['\"]`))
-if (packagedGem) {
-  assert.match(gemfileLock, new RegExp(`${packageConfig['package-name']} \\(${currentVersion.toString()}\\)`))
+// The exact update set differs by release type — node emits entries for files that may not
+// exist — so what matters is that the changelog and the version file are among them.
+const updatePaths = updates.map(update => update.path)
+assert.ok(updatePaths.includes('CHANGELOG.md'), 'CHANGELOG.md must be updated by a release.')
+assert.ok(updatePaths.includes(versionFile), `${versionFile} must be updated by a release.`)
+assert.match(versionSource, language.holds(currentVersion.toString()))
+if (packaged) {
+  assert.match(lockfile, language.lockedAs(packageConfig['package-name'], currentVersion.toString()))
 }
 
 const releaseTitle = PullRequestTitle.ofComponentTargetBranchVersion(
@@ -137,20 +142,20 @@ for (const { type, section } of config['changelog-sections']) {
   assert.notEqual(versioning.bump(currentVersion, [typed]).toString(), currentVersion.toString(), `${type} must release`)
 }
 
-const updatedVersionSource = new VersionRB({ version: expectedPatchVersion }).updateContent(versionSource)
-assert.match(updatedVersionSource, new RegExp(`VERSION = ['\"]${expectedPatchVersion.toString()}['\"]`))
+// Apply the repository's own updaters rather than naming one per language: whatever
+// release-please would write to the version file is what gets checked.
+const versionUpdate = updates.find(update => update.path === versionFile)
+assert.match(versionUpdate.updater.updateContent(versionSource), language.holds(expectedPatchVersion.toString()))
 
-if (packagedGem) {
-  const updatedGemfileLock = new GemfileLock({
-    gemName: packageConfig['package-name'],
-    version: expectedPatchVersion,
-  }).updateContent(gemfileLock)
-  assert.match(updatedGemfileLock, new RegExp(`${packageConfig['package-name']} \\(${expectedPatchVersion.toString()}\\)`))
+if (packaged) {
+  const lockUpdate = updates.find(update => update.path === language.lockfile)
+  assert.match(lockUpdate.updater.updateContent(lockfile),
+    language.lockedAs(packageConfig['package-name'], expectedPatchVersion.toString()))
 }
 
 console.log(
   `Release rules verified: feat=minor, breaking=major, every one of the ${config['changelog-sections'].length} types releases and is listed.`,
 )
-console.log(`Version file verified: ${packageConfig['version-file']} holds ${currentVersion.toString()}.`)
+console.log(`Version file verified: ${versionFile} holds ${currentVersion.toString()}.`)
 console.log('\nMaintenance fixture preview:\n')
 console.log(maintenanceNotes)

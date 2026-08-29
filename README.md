@@ -48,7 +48,9 @@ and `JIRA_BROWSE_URL` in CI.
 Every command runs from the root of the repository it serves and reads that
 repository's `release-please-config.json`. Nothing about a specific repository lives
 here — the release type, the version file and the package name all come from that
-config.
+config. `ruby`, `node` and `simple` are supported; `src/release-types.mjs` says where each
+keeps its version, and everything else about applying a bump comes from Release Please's
+own updaters, so adding a language is one entry there.
 
 ## Environment
 
