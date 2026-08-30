@@ -15,6 +15,11 @@ const BRANCH = new RegExp(`^${JIRA_PROJECT}-\\d+-[a-z0-9]+(?:[-_][a-z0-9]+)*$`)
 const BRANCH_EXEMPT = [/^master$/, /^main$/, /^staging$/, /^production$/, /^v\d+\.\d+\.\d+$/,
   /^release\/v\d+\.\d+\.\d+$/, /^release-please--/, /^dependabot\//, /^revert-\d+-/]
 
+// Accounts that open pull requests no Jira issue covers and cannot be told to invent one.
+// BRANCH_EXEMPT already lets their branches through; without the same allowance here every
+// dependency update would fail the title check and none would ever be mergeable.
+const KEYLESS_AUTHORS = new Set(['dependabot[bot]'])
+
 // The tooling runs from the root of the repository it serves, so its config lives there.
 const CONFIG_PATH = resolve(process.cwd(), 'release-please-config.json')
 // Every placeholder Release Please substitutes in a title, matching what its own
@@ -60,6 +65,8 @@ export function rulesFrom(config) {
 
   return {
     title: new RegExp(`^(?:${types})${SCOPE}: ${KEYS} (?![A-Z][a-z])\\S.+$`),
+    // The same shape without the key, for the authors in KEYLESS_AUTHORS.
+    keyless: new RegExp(`^(?:${types})${SCOPE}: (?![A-Z][a-z])\\S.+$`),
     revert: new RegExp(`^revert${SCOPE}: ${KEYS} "[^"]+"$`),
     // Only used to strip the prefix before looking for a stray key, so it takes any type:
     // an unknown one is already reported, and holding the keys against a prefix that
@@ -80,8 +87,13 @@ export function branchErrors(branch) {
     'That name is what links the branch and its pull request to the issue.']
 }
 
-export function titleErrors(title, rules) {
+export function titleErrors(title, rules, author = null) {
   if (rules.exempt.test(title)) return []
+
+  if (KEYLESS_AUTHORS.has(author)) {
+    if (rules.keyless.test(title)) return []
+    return ['Use type(scope): lowercase summary with an allowed Conventional Commit type.']
+  }
 
   const errors = []
   if (!rules.title.test(title) && !rules.revert.test(title)) {
