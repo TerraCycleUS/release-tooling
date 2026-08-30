@@ -1,0 +1,4 @@
+# Every repository on the shared standard assigns an owner; this one had none, which
+# would have left a code-owner review requirement with nobody to resolve it.
+*    @TerraCycleUS/loop-admin
+.*   @TerraCycleUS/loop-admin
