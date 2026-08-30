@@ -8,11 +8,16 @@ const repository = process.env.RELEASE_REPOSITORY ||
 export const [owner, repo] = repository.split('/')
 
 // An unresolved repository would spell `undefined/undefined` into every URL, and the 404
-// that comes back reads to `optionalJson` as "nothing published yet".
-export function request(path, options = {}) {
+// that comes back reads to `optionalJson` as "nothing published yet". A command that reads
+// owner and repo without ever calling request() has to ask for the same guard itself.
+export function requireRepository() {
   if (!repository.includes('/')) {
     throw new Error('Set RELEASE_REPOSITORY as owner/repo; CIRCLE_PROJECT_USERNAME and CIRCLE_PROJECT_REPONAME are not both set.')
   }
+}
+
+export function request(path, options = {}) {
+  requireRepository()
 
   return fetch(`https://api.github.com/repos/${repository}${path}`, {
     ...options,

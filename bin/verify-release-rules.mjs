@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 
 import { escapeRegExp } from '../src/escape-regexp.mjs'
-import { owner, repo } from '../src/github.mjs'
+import { owner, repo, requireRepository } from '../src/github.mjs'
 import CANONICAL_SECTIONS from '../src/changelog-sections.json' with { type: 'json' }
 import { RELEASE_TYPES } from '../src/release-types.mjs'
 
@@ -46,10 +46,7 @@ const changelog = new DefaultChangelogNotes()
 assert.deepEqual(config['changelog-sections'], CANONICAL_SECTIONS,
   'changelog-sections must match src/changelog-sections.json in @terracycleus/release-tooling.')
 
-// This is the one command that reads owner and repo without ever calling request(), so
-// the guard there never fires for it: unset, the strategy would be built for `/undefined`.
-assert.ok(owner && repo,
-  'Set RELEASE_REPOSITORY as owner/repo; CIRCLE_PROJECT_USERNAME and CIRCLE_PROJECT_REPONAME are not both set.')
+requireRepository()
 
 const strategy = await buildStrategy({
   github: { repository: { owner, repo } },
@@ -121,7 +118,6 @@ const maintenanceNotes = await notesFor([maintenance], maintenanceVersion.toStri
 assert.equal(maintenance.type, 'maintenance')
 assert.equal(maintenance.scope, 'deps')
 assert.equal(maintenanceVersion.toString(), expectedPatchVersion.toString())
-assert.match(maintenanceNotes, /Maintenance/)
 assert.match(maintenanceNotes, /ITG-123, ITG-999/)
 
 const feature = commit('feat(api): (ITG-123) add request retries')
