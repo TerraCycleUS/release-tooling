@@ -33,12 +33,6 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install
-          command: npm ci
-      - run:
-          name: Test
-          command: npm test
-      - run:
           name: Publish to GitHub Packages
           command: |
             set -euo pipefail

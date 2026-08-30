@@ -65,6 +65,20 @@ assert.equal(titleErrors('fix(api): [ITG-123] correct the ITG-999 response', rul
 // A key in the scope is both an unusable type and a misplaced key, so it reports both.
 assert.equal(titleErrors('feat(ITG-123): [ITG-1] add retries', rules).length, 2)
 
+// A machine account cannot know a Jira issue, and its branches are already exempt. Its
+// titles still have to carry an allowed type, and a human with the same title does not
+// get the same pass.
+const BOT = 'dependabot[bot]'
+assert.deepEqual(titleErrors('maintenance(deps): bump the gems group', rules, BOT), [])
+assert.deepEqual(titleErrors('build(deps): bump release-tooling from 1.3.0 to 1.4.0', canonicalRules, BOT), [])
+assert.notEqual(titleErrors('bump the gems group', rules, BOT).length, 0)
+assert.notEqual(titleErrors('change(deps): bump the gems group', rules, BOT).length, 0)
+// The same title from a person still needs its key.
+assert.notEqual(titleErrors('maintenance(deps): bump the gems group', rules, 'a-person').length, 0)
+assert.notEqual(titleErrors('maintenance(deps): bump the gems group', rules).length, 0)
+// A key it did somehow carry is still fine — the exemption drops the requirement, not the type.
+assert.deepEqual(titleErrors('maintenance(deps): [ITG-123] bump the gems group', rules, BOT), [])
+
 // Release Please writes the version its own way: a `v` prefix and a prerelease suffix are
 // both titles it opens, and rejecting one would block the release pull request.
 for (const version of ['1.0.1', 'v1.0.1', '1.0.1-rc.1', '1.0.1-master.6', '1.0.1+build.2']) {

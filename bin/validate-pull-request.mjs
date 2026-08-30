@@ -2,12 +2,12 @@
 import { json } from '../src/github.mjs'
 import { branchErrors, loadRules, titleErrors } from '../src/pull-request-rules.mjs'
 
-async function pullRequestTitle() {
+async function pullRequest() {
   const urls = process.env.CIRCLE_PULL_REQUEST || process.env.CIRCLE_PULL_REQUESTS || ''
   const number = urls.split(',')[0]?.split('/').pop()
   if (!number) return null
 
-  return (await json(`/pulls/${number}`)).title
+  return json(`/pulls/${number}`)
 }
 
 const rules = await loadRules()
@@ -22,9 +22,9 @@ if (branch) {
   console.log('No branch context detected; branch validation skipped.')
 }
 
-const title = await pullRequestTitle()
-if (title) {
-  failures.push(...titleErrors(title, rules).map(error => `${title}: ${error}`))
+const pull = await pullRequest()
+if (pull) {
+  failures.push(...titleErrors(pull.title, rules, pull.user?.login).map(error => `${pull.title}: ${error}`))
 } else {
   console.log('No pull request context detected; title validation skipped.')
 }
@@ -34,4 +34,4 @@ if (failures.length) {
   process.exit(1)
 }
 
-if (title) console.log(`Pull request title is valid: ${title}`)
+if (pull) console.log(`Pull request title is valid: ${pull.title}`)

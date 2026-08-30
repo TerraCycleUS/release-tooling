@@ -8,11 +8,16 @@ const repository = process.env.RELEASE_REPOSITORY ||
 export const [owner, repo] = repository.split('/')
 
 // An unresolved repository would spell `undefined/undefined` into every URL, and the 404
-// that comes back reads to `optionalJson` as "nothing published yet".
-export function request(path, options = {}) {
+// that comes back reads to `optionalJson` as "nothing published yet". A command that reads
+// owner and repo without ever calling request() has to ask for the same guard itself.
+export function requireRepository() {
   if (!repository.includes('/')) {
     throw new Error('Set RELEASE_REPOSITORY as owner/repo; CIRCLE_PROJECT_USERNAME and CIRCLE_PROJECT_REPONAME are not both set.')
   }
+}
+
+export function request(path, options = {}) {
+  requireRepository()
 
   return fetch(`https://api.github.com/repos/${repository}${path}`, {
     ...options,
@@ -48,6 +53,11 @@ export async function json(path, options = {}) {
   return body
 }
 
+// The head ref alone is not proof: anyone may open a pull request from a fork under any
+// branch name, and on the public repositories that is not a hypothetical. A fork's branch
+// does not exist here, so writing to it would 404 and the real release pull request would
+// be passed over — the release notes would then quietly stop being linked.
 export function releasePullRequest(pulls) {
-  return pulls.find(pull => pull.head?.ref?.startsWith('release-please--')) ?? null
+  return pulls.find(pull => pull.head?.ref?.startsWith('release-please--') &&
+    pull.head?.repo?.full_name && pull.head.repo.full_name === pull.base?.repo?.full_name) ?? null
 }
