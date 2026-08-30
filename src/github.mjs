@@ -53,6 +53,11 @@ export async function json(path, options = {}) {
   return body
 }
 
+// The head ref alone is not proof: anyone may open a pull request from a fork under any
+// branch name, and on the public repositories that is not a hypothetical. A fork's branch
+// does not exist here, so writing to it would 404 and the real release pull request would
+// be passed over — the release notes would then quietly stop being linked.
 export function releasePullRequest(pulls) {
-  return pulls.find(pull => pull.head?.ref?.startsWith('release-please--')) ?? null
+  return pulls.find(pull => pull.head?.ref?.startsWith('release-please--') &&
+    pull.head?.repo?.full_name && pull.head.repo.full_name === pull.base?.repo?.full_name) ?? null
 }

@@ -28,7 +28,7 @@ const versionSource = await readFile(versionFile, 'utf8')
 const lockfile = language.lockfile ? await readFile(language.lockfile, 'utf8') : null
 // Only a packaged library lists itself in its own lockfile; an application does not.
 const packaged = lockfile !== null &&
-  new RegExp(`^\\s+${packageConfig['package-name']} \\(`, 'm').test(lockfile)
+  new RegExp(`^\\s+${escapeRegExp(packageConfig['package-name'])} \\(`, 'm').test(lockfile)
 const currentVersion = Version.parse(manifestVersions['.'])
 const expectedPatchVersion = new Version(
   currentVersion.major,
