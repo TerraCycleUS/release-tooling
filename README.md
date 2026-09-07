@@ -12,7 +12,7 @@ files; this is that copy, once.
 | `validate-pull-request` | rejects a branch name or pull request title that does not carry its Jira key |
 | `create-release-branch` | cuts `release/<tag>` from a published release, so Heroku can deploy it |
 | `linkify-release-notes` | turns Jira keys in the published release notes into links |
-| `linkify-changelog` | does the same for `CHANGELOG.md` on the open release pull request |
+| `linkify-changelog` | does the same for `CHANGELOG.md` and the description on the open release pull request |
 
 ## Using it
 

@@ -61,4 +61,19 @@ assert.equal(withReferences('* run `git branch ITG-1-x` first'), '* run `git bra
 assert.equal(withReferences('```\nITG-1\n```\n'), '```\nITG-1\n```\n')
 assert.equal(withReferences('* ITG-1 then ```ITG-2``` then ITG-3'), '* [ITG-1] then ```ITG-2``` then [ITG-3]')
 
+// A release description the Jira app linked part of: its own definitions carry a query
+// string and stand as they are, the keys it never reached are added once each.
+const partiallyLinked = 'This pull request prepares the next release.\n\n' +
+  '* [ITG-1] one ([#11](https://example.test/pull/11))\n' +
+  '* add a tool(ITG-2) ([#12](https://example.test/pull/12))\n' +
+  '* [ITG-3] three ([#13](https://example.test/pull/13))\n\n' +
+  '[ITG-1]: https://example.atlassian.net/browse/ITG-1?atlOrigin=eyJpIjoiNWQifQ\n'
+const completed = withJiraLinks(partiallyLinked)
+assert.ok(completed.includes('add a tool([ITG-2])'))
+assert.equal(completed.match(/^\[ITG-1\]: /gm).length, 1)
+assert.ok(completed.includes('browse/ITG-1?atlOrigin=eyJpIjoiNWQifQ'))
+assert.ok(completed.endsWith('[ITG-2]: https://example.atlassian.net/browse/ITG-2\n' +
+  '[ITG-3]: https://example.atlassian.net/browse/ITG-3\n'))
+assert.equal(withJiraLinks(completed), completed)
+
 console.log('Jira link rules verified.')
