@@ -22,8 +22,44 @@ jobs:
       # The rules this package defines apply to it too; it is a public repository, so the
       # check reads its own pull request without a token.
       - run:
+          name: Verify release rules
+          command: node bin/verify-release-rules.mjs
+      - run:
           name: Verify branch and pull request title rules
           command: node bin/validate-pull-request.mjs
+
+  # This package releases itself the way it releases its consumers, with its own commands
+  # rather than an installed copy: a change that breaks them stops its own release too.
+  release_please:
+    executor: node
+    steps:
+      - checkout
+      - run:
+          name: Install
+          command: npm ci
+      - run:
+          name: Publish a merged release pull request and prepare the next release
+          command: |
+            set -euo pipefail
+
+            RELEASE_PLEASE="node_modules/.bin/release-please"
+
+            ARGS=(
+              --token="$RELEASE_PLEASE_TOKEN"
+              --repo-url="${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}"
+              --target-branch="master"
+              --config-file="release-please-config.json"
+              --manifest-file=".release-please-manifest.json"
+            )
+
+            "$RELEASE_PLEASE" github-release "${ARGS[@]}"
+            "$RELEASE_PLEASE" release-pr "${ARGS[@]}"
+      - run:
+          name: Resolve Jira keys in the published release notes
+          command: node bin/linkify-release-notes.mjs
+      - run:
+          name: Resolve Jira keys in the release pull request changelog
+          command: node bin/linkify-changelog.mjs
 
   # Publishing needs write:packages, which only RELEASE_PLEASE_TOKEN carries. Consumers
   # never see it: they install from git, tokenless. This job is tags-only and never runs
@@ -54,6 +90,15 @@ workflows:
           filters:
             tags:
               only: /^v\d+\.\d+\.\d+$/
+      # Tags are what publish; this only opens and lands the release pull request that
+      # makes one, so it stays off the tag builds its own merge triggers.
+      - release_please:
+          context: tc-loop-release-please
+          requires:
+            - test
+          filters:
+            branches:
+              only: master
       - publish:
           context: tc-loop-release-please
           requires:

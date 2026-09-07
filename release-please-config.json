@@ -1,0 +1,64 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/v17.11.2/schemas/config.json",
+  "draft-pull-request": true,
+  "include-component-in-tag": false,
+  "pull-request-title-pattern": "chore${scope}: prepare${component} ${version}",
+  "pull-request-header": "This pull request prepares the next release-tooling release.",
+  "pull-request-footer": "Review the version and changelog before merging. Merging tags the release, and the tag publishes it.",
+  "changelog-sections": [
+    {
+      "type": "feat",
+      "section": "Features"
+    },
+    {
+      "type": "fix",
+      "section": "Bug Fixes"
+    },
+    {
+      "type": "perf",
+      "section": "Performance Improvements"
+    },
+    {
+      "type": "maintenance",
+      "section": "Maintenance"
+    },
+    {
+      "type": "build",
+      "section": "Build System"
+    },
+    {
+      "type": "revert",
+      "section": "Reverts"
+    },
+    {
+      "type": "refactor",
+      "section": "Code Refactoring"
+    },
+    {
+      "type": "docs",
+      "section": "Documentation"
+    },
+    {
+      "type": "test",
+      "section": "Tests"
+    },
+    {
+      "type": "ci",
+      "section": "Continuous Integration"
+    },
+    {
+      "type": "style",
+      "section": "Styles"
+    },
+    {
+      "type": "chore",
+      "section": "Miscellaneous Chores"
+    }
+  ],
+  "packages": {
+    ".": {
+      "package-name": "@terracycleus/release-tooling",
+      "release-type": "node"
+    }
+  }
+}

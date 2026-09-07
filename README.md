@@ -64,13 +64,12 @@ own updaters, so adding a language is one entry there.
 
 ## Releasing this package
 
-Bump `version` in `package.json`, commit, then push a matching tag:
-
-```sh
-git tag v1.0.1 && git push origin v1.0.1
-```
-
-CI refuses if the tag and the package version disagree.
+Release Please runs here too, on the commands this package hands its consumers rather than
+on an installed copy — a change that breaks them stops its own release as well. A merge to
+`master` opens or updates a draft `chore(master): prepare <version>` pull request; merging
+that one bumps `package.json`, writes `CHANGELOG.md` and pushes the `v<version>` tag, and
+the tag build publishes to GitHub Packages. Nothing is bumped by hand: `feat` takes a minor,
+a breaking change a major, every other type a patch.
 
 Consumers pin the tag, so a release does not reach them on its own: bump the tag
 in their `.release/package.json`, then **delete `.release/package-lock.json` and
@@ -78,10 +77,10 @@ in their `.release/package.json`, then **delete `.release/package-lock.json` and
 re-resolve a git tag while a lockfile entry for it exists, so a plain install leaves the
 old commit pinned and CI keeps installing the old code. Open that as its own pull request.
 
-The tag also publishes the package to GitHub Packages, which is a second way to consume
-it that nothing uses today. That job takes `RELEASE_PLEASE_TOKEN` from the
-`tc-loop-release-please` context for its `write:packages` scope. It runs on tags only and
-never on a branch, so branch code cannot reach that token.
+GitHub Packages is a second way to consume this that nothing uses today. The publish job
+takes `RELEASE_PLEASE_TOKEN` from the `tc-loop-release-please` context for its
+`write:packages` scope, refuses a tag that disagrees with the package version, and runs on
+tags only and never on a branch, so branch code cannot reach that token.
 
 ## Tests
 
