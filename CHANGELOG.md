@@ -6,3 +6,5 @@
 ### Continuous Integration
 
 * **release:** [ITG-409] release this package with release-please ([#12](https://github.com/TerraCycleUS/release-tooling/issues/12)) ([d63db53](https://github.com/TerraCycleUS/release-tooling/commit/d63db534edd3642022c57b86b4d9853bc0cd16ad))
+
+[ITG-409]: https://terracycle.atlassian.net/browse/ITG-409
