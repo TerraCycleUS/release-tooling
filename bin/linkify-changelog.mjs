@@ -1,9 +1,12 @@
 #!/usr/bin/env node
+import { setTimeout as sleep } from 'node:timers/promises'
 import { json, optionalJson, releasePullRequest, requireToken } from '../src/github.mjs'
 import { addedLines, withJiraLinks } from '../src/jira-links.mjs'
 
 const CHANGELOG = 'CHANGELOG.md'
 const MESSAGE = 'chore(master): link jira keys in the changelog'
+const DESCRIPTION_WRITES = 3
+const SETTLE_MS = 8000
 
 requireToken()
 
@@ -53,25 +56,36 @@ async function linkChangelogFile(pull) {
 }
 
 // The description repeats the same changelog, and Release Please rewrites it whole on every
-// run. The Jira app is what would link it, and it appends definitions for the keys it reads
-// from the top until it stops part way — 4 of the 16 on loop-tds#668 — so the description
-// needs its own pass here, after each rewrite. Keys the app did reach keep its links:
-// withJiraLinks only defines what is missing.
-async function linkDescription(pull) {
-  const current = pull.body ?? ''
-  const linked = withJiraLinks(current)
-  if (linked === current) {
-    console.log(`#${pull.number}: every Jira key in the description already resolves.`)
-    return
+// run. The Jira app that would link it appends definitions for the keys it reads from the
+// top and stops part way — 4 of the 16 on loop-tds#668 — so the description needs its own
+// pass here. It does not append to what it finds either: it writes back the whole body it
+// had already computed, which on that same pull request dropped this one a second after it
+// landed. So write, let its pass settle, and look again; once every key resolves its
+// rewrite carries the same links and there is nothing left to restore.
+async function linkDescription(number) {
+  for (let written = 0; written <= DESCRIPTION_WRITES; written += 1) {
+    const { body } = await json(`/pulls/${number}`)
+    const current = body ?? ''
+    const linked = withJiraLinks(current)
+
+    if (linked === current) {
+      console.log(`#${number}: every Jira key in the description resolves.`)
+      return
+    }
+
+    if (dryRun) {
+      console.log(`#${number} would rewrite its description:\n${addedLines(current, linked).join('\n')}`)
+      return
+    }
+
+    if (written === DESCRIPTION_WRITES) break
+
+    await json(`/pulls/${number}`, { method: 'PATCH', body: JSON.stringify({ body: linked }) })
+    console.log(`#${number}: linked every Jira key in the description.`)
+    await sleep(SETTLE_MS)
   }
 
-  if (dryRun) {
-    console.log(`#${pull.number} would rewrite its description:\n${addedLines(current, linked).join('\n')}`)
-    return
-  }
-
-  await json(`/pulls/${pull.number}`, { method: 'PATCH', body: JSON.stringify({ body: linked }) })
-  console.log(`#${pull.number}: linked every Jira key in the description.`)
+  console.log(`#${number}: something rewrote the description under all ${DESCRIPTION_WRITES} passes; the next release run tries again.`)
 }
 
 const pull = await openReleasePullRequest()
@@ -81,4 +95,4 @@ if (!pull) {
 }
 
 await linkChangelogFile(pull)
-await linkDescription(pull)
+await linkDescription(pull.number)
