@@ -37,7 +37,7 @@ reject('chore(master): prepare')
 for (const branch of ['ITG-123-add-request-retries', 'ITG-1-fix', 'master', 'staging', 'production',
   'v1.0.2', 'v10.20.30', 'release/v1.0.2', 'release/v10.20.30',
   'release-please--branches--master', 'release-please--branches--master--components--loop_client',
-  'dependabot/bundler/rack-3.1.0', 'revert-8-maintenance/release-please-circleci']) {
+  'dependabot/bundler/rack-3.1.0', 'renovate/gems', 'revert-8-maintenance/release-please-circleci']) {
   assert.deepEqual(branchErrors(branch), [], `should accept branch: ${branch}`)
 }
 for (const branch of ['maintenance/release-please-circleci', 'itg-123-add-retries', 'ITG123-add-retries',
@@ -78,6 +78,8 @@ assert.notEqual(titleErrors('maintenance(deps): bump the gems group', rules, 'a-
 assert.notEqual(titleErrors('maintenance(deps): bump the gems group', rules).length, 0)
 // A key it did somehow carry is still fine — the exemption drops the requirement, not the type.
 assert.deepEqual(titleErrors('maintenance(deps): [ITG-123] bump the gems group', rules, BOT), [])
+assert.deepEqual(titleErrors('maintenance(deps): update gems', rules, 'renovate[bot]'), [])
+assert.notEqual(titleErrors('Update gems', rules, 'renovate[bot]').length, 0)
 
 // Release Please writes the version its own way: a `v` prefix and a prerelease suffix are
 // both titles it opens, and rejecting one would block the release pull request.
